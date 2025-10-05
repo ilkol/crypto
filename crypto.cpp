@@ -1,13 +1,13 @@
 #include "crypto.h"
 
 QString Crypto::encrypt(const QString& message) {
-    return message;
+    return "Зашифровал";
 }
 
 QString Crypto::decrypt(const QString& message) {
-    return message;
+    return "Расшифровал";
 }
 
 QString Crypto::hack(const QString& message) {
-    return message;
+    return "Взломал";
 }
