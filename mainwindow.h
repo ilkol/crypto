@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <functional>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,5 +20,12 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    void processClickButton(std::function<QString(const QString&)> func);
+
+private slots:
+    void on_pushButtonEncrypt_clicked();
+    void on_pushButtonDecipher_clicked();
+    void on_pushButtonHack_clicked();
 };
 #endif // MAINWINDOW_H
