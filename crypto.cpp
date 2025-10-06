@@ -44,11 +44,19 @@ void Crypto::Init() {
     }
 }
 
+QChar Crypto::getCharFromTable(const QChar& ch, const std::unordered_map<QChar, QChar>& map) {
+    auto it = map.find(ch);
+    if(it == map.end()) {
+        return ch;
+    }
+    return it->second;
+}
+
 QChar Crypto::encryptChar(const QChar& ch) {
-    return charEncodedTable.at(ch);
+    return getCharFromTable(ch, charEncodedTable);
 }
 QChar Crypto::decryptChar(const QChar& ch) {
-    return charDecodeTable.at(ch);
+    return getCharFromTable(ch, charDecodeTable);
 }
 
 QString Crypto::encrypt(const QString& message) {

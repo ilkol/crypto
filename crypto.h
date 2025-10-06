@@ -10,6 +10,8 @@ class Crypto
 
     static std::unordered_map<QChar, QChar> charDecodeTable;
 
+    static QChar getCharFromTable(const QChar& ch, const std::unordered_map<QChar, QChar>& map);
+
     static QChar encryptChar(const QChar& ch);
     static QChar decryptChar(const QChar& ch);
 
