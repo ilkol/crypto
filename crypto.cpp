@@ -52,24 +52,12 @@ QChar Crypto::getCharFromTable(const QChar& ch, const std::unordered_map<QChar, 
     return it->second;
 }
 
-QString Crypto::encrypt(const QString& message) {
-
+QString Crypto::translateMessageByTable(const QString& message, const std::unordered_map<QChar, QChar>& map) {
     QString result{};
-    result.reserve(charDecodeTable.size());
+    result.reserve(message.size());
 
     for(const auto& ch : message) {
-        result += encryptChar(ch);
-    }
-
-    return result;
-}
-
-QString Crypto::decrypt(const QString& message) {
-    QString result{};
-    result.reserve(charDecodeTable.size());
-
-    for(const auto& ch : message) {
-        result += decryptChar(ch);
+        result += getCharFromTable(ch, map);
     }
 
     return result;
