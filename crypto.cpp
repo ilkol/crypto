@@ -44,10 +44,21 @@ void Crypto::Init() {
     }
 }
 
+QChar Crypto::encryptChar(const QChar& ch) {
+    return charEncodedTable.at(ch);
+}
+QChar Crypto::decryptChar(const QChar& ch) {
+    return charDecodeTable.at(ch);
+}
+
 QString Crypto::encrypt(const QString& message) {
 
     QString result{};
     result.reserve(charDecodeTable.size());
+
+    for(const auto& ch : message) {
+        result += encryptChar(ch);
+    }
 
     return result;
 }
@@ -56,7 +67,11 @@ QString Crypto::decrypt(const QString& message) {
     QString result{};
     result.reserve(charDecodeTable.size());
 
-    return "Расшифровал";
+    for(const auto& ch : message) {
+        result += decryptChar(ch);
+    }
+
+    return result;
 }
 
 QString Crypto::hack(const QString& message) {
