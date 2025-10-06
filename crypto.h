@@ -12,8 +12,12 @@ class Crypto
 
     static QChar getCharFromTable(const QChar& ch, const std::unordered_map<QChar, QChar>& map);
 
-    static QChar encryptChar(const QChar& ch);
-    static QChar decryptChar(const QChar& ch);
+    static inline QChar encryptChar(const QChar& ch) {
+        return getCharFromTable(ch, charEncodedTable);
+    }
+    static inline QChar decryptChar(const QChar& ch) {
+        return getCharFromTable(ch, charDecodeTable);
+    }
 
 public:
     Crypto() = delete;

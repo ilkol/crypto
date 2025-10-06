@@ -52,13 +52,6 @@ QChar Crypto::getCharFromTable(const QChar& ch, const std::unordered_map<QChar, 
     return it->second;
 }
 
-QChar Crypto::encryptChar(const QChar& ch) {
-    return getCharFromTable(ch, charEncodedTable);
-}
-QChar Crypto::decryptChar(const QChar& ch) {
-    return getCharFromTable(ch, charDecodeTable);
-}
-
 QString Crypto::encrypt(const QString& message) {
 
     QString result{};
