@@ -1,5 +1,21 @@
 #include "crypto.h"
 
+#include <map>
+
+std::unordered_map<double, QChar> Crypto::lettersFrequency = {
+    {0.10983, u'о'}, {0.08483 , u'е'}, {0.07998, u'а'},
+    {0.07367, u'и'}, {0.067 , u'н'}, {0.06318, u'т'},
+    {0.05473, u'с'}, {0.04746 , u'р'}, {0.04533, u'в'},
+    {0.04343, u'л'}, {0.03486 , u'к'}, {0.03203, u'м'},
+    {0.02977, u'д'}, {0.02804 , u'п'}, {0.02615 , u'у'},
+    {0.02001, u'я'}, {0.01898 , u'ы'}, {0.01735 , u'ь'},
+    {0.01687, u'г'}, {0.01641 , u'з'}, {0.01592 , u'б'},
+    {0.0145, u'ч'}, {0.01208 , u'й'}, {0.00966 , u'х'},
+    {0.0094, u'ж'}, {0.00718 , u'ш'}, {0.00639 , u'ю'},
+    {0.00486, u'ц'}, {0.00361 , u'щ'}, {0.00331 , u'э'},
+    {0.00267, u'ф'}, {0.00037 , u'ъ'}, {0.00013 , u'ё'},
+};
+
 std::unordered_map<QChar, QChar> Crypto::charEncodedTable = {
     {u'а', u'='}, {u'б', u'ю'}, {u'в', u'у'},
     {u'г', u'9'}, {u'д', u'!'}, {u'е', u'Э'},
@@ -63,9 +79,66 @@ QString Crypto::translateMessageByTable(const QString& message, const std::unord
     return result;
 }
 
+inline bool isEqueal(double a, double b, double epsilon) {
+    return std::abs(a - b) < epsilon;
+}
+
+std::unordered_map<QChar, QChar> Crypto::hackTableByFrequency(std::map<QChar, double> frequency) {
+    std::unordered_map<QChar, QChar> result{};
+
+    for(const auto& frequencyPair : frequency) {
+        const auto& pair = std::find_if(lettersFrequency.begin(), lettersFrequency.end(), [frequencyPair](const auto& element) {
+            return isEqueal(element.first, frequencyPair.second, 0.001);
+        });
+        if(pair != lettersFrequency.end()) {
+            result[frequencyPair.first] = pair->second;
+        }
+    }
+    return result;
+}
+
 QString Crypto::hack(const QString& message) {
+
+    std::map<QChar, double> frequencyTable{};
+
+    // собираем количество вхождений символов
+    for(const QChar& ch : message) {
+        auto it = frequencyTable.find(ch);
+        if(it == frequencyTable.end()) {
+            frequencyTable[ch] = 1.0;
+            continue;
+        }
+        it->second++;
+    }
+
+    qsizetype size = message.length();
+
+
     QString result{};
     result.reserve(charDecodeTable.size());
 
-    return "Взломал";
+    // считаем частоту вхождений каждого символа
+    for(auto& pair : frequencyTable) {
+        pair.second /= size;
+    }
+
+    const auto table = hackTableByFrequency(frequencyTable);
+
+    result = translateMessageByTable(message, table);
+
+    for(auto& pair : table) {
+        result += pair.first;
+        result += " - ";
+        result += pair.second;
+        result += '\n';
+    }
+    for(auto& pair : frequencyTable) {
+        result += pair.first;
+        result += " - ";
+        result += std::to_string(pair.second);
+        result += '\n';
+    }
+
+
+    return result;
 }
