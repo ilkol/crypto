@@ -72,9 +72,7 @@ QString Crypto::convertCharacters(const QString& message, const QString& key, st
     return result;
 }
 
-const QString key {"Очень важный тайный ключ!"};
-
-QString Crypto::encrypt(const QString& message) {
+QString Crypto::encrypt(const QString& message, const QString& key) {
     return convertCharacters(message, key, [](size_t keyIndex, size_t messageIndex){
         size_t encodeCharIndex = keyIndex + messageIndex;
         if(encodeCharIndex > charEncodeTable.size()) {
@@ -84,7 +82,7 @@ QString Crypto::encrypt(const QString& message) {
     });
 }
 
-QString Crypto::decrypt(const QString& message) {
+QString Crypto::decrypt(const QString& message, const QString& key) {
     return convertCharacters(message, key, [](size_t keyIndex, size_t messageIndex){
         int encodeCharIndex = messageIndex - keyIndex;
         if(encodeCharIndex < 0) {
@@ -92,8 +90,4 @@ QString Crypto::decrypt(const QString& message) {
         }
         return static_cast<size_t>(encodeCharIndex);
     });
-}
-
-QString Crypto::hack(const QString& message) {
-    return "Взломал";
 }

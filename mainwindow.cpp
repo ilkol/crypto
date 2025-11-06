@@ -14,9 +14,10 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::processClickButton(std::function<QString(const QString&)> func) {
+void MainWindow::processClickButton(std::function<QString(const QString&, const QString&)> func) {
     QString input = ui->textEditMessage->toPlainText();
-    ui->textEditResult->setText(func(input));
+    QString key = ui->textEditKey->toPlainText();
+    ui->textEditResult->setText(func(input, key));
 }
 
 void MainWindow::on_pushButtonEncrypt_clicked()
@@ -29,10 +30,3 @@ void MainWindow::on_pushButtonDecipher_clicked()
 {
     processClickButton(Crypto::decrypt);
 }
-
-
-void MainWindow::on_pushButtonHack_clicked()
-{
-    processClickButton(Crypto::hack);
-}
-
