@@ -6,6 +6,7 @@
 #include <random>
 #include <QByteArray>
 #include <QtEndian>
+#include <QDebug>
 
 namespace {
 struct CryptoOperation {
@@ -77,8 +78,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
     std::mt19937_64 gen(key);
     std::uniform_int_distribution<uint8_t>
         operatioTypeDist(0, 4),
-        boolDist(0, 1),
-        modAddDist(8, 63)
+        boolDist(0, 1)
     ;
 
     for(size_t i{0}; i < params.operationsCount; i++) {
@@ -112,7 +112,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
             break;
         case 1: // перестановка
         {
-            auto table {generateTable(key + 1, params.blockSize)};
+            auto table {generateTable(key + i, params.blockSize)};
             auto invTable {inverTable(table)};
 
             op.encrypt = [params, table](QByteArray& message) {
@@ -177,12 +177,14 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
         {
             bool type {boolDist(gen) > 0};
             size_t mid = params.blockSize / 2;
-            uint8_t maxBits = static_cast<uint8_t>(mid * 8);
-            uint8_t n {modAddDist(gen)};
+            std::uniform_int_distribution<uint8_t> modAddDist(1, mid);
+            uint8_t n {modAddDist(gen) * 8};
             uint64_t mask = ((1ULL << n) - 1);
 
             auto add = [mask](uint64_t a, uint64_t b) { return (a + b) & mask; };
             auto sub = [mask](uint64_t a, uint64_t b) { return (a - b) & mask; };
+
+            qDebug() << mid << " " << n << " " << mask;
 
             op.encrypt = [params, type, add, mid](QByteArray& message) {
 
