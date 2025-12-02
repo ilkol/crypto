@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <QDebug>
 #include <QMessageBox>
 
 using boost::multiprecision::cpp_int;
