@@ -253,8 +253,6 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
 
     return result;
 }
-
-}
 QByteArray addPadding(const QByteArray& data, uint8_t blockSize){
     uint8_t paddingLength = blockSize - (data.size() % blockSize);
     QByteArray res = data;
@@ -266,9 +264,11 @@ QByteArray deletePadding(const QByteArray& data, uint8_t blockSize){
     if(data.isEmpty()) return data;
     uint8_t paddingLength{static_cast<uchar>(data.back())};
     return (paddingLength > blockSize)
-       ? data
-       : data.left(data.size() - paddingLength)
-    ;
+               ? data
+               : data.left(data.size() - paddingLength)
+        ;
+}
+
 }
 
 std::pair<uint64_t, EncryptParams> generateParams(const QString& key) {
