@@ -184,8 +184,6 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
             auto add = [mask](uint64_t a, uint64_t b) { return (a + b) & mask; };
             auto sub = [mask](uint64_t a, uint64_t b) { return (a - b) & mask; };
 
-            qDebug() << mid << " " << n << " " << mask;
-
             op.encrypt = [params, type, add, mid](QByteArray& message) {
 
                 for(size_t i{0}; i < message.size(); i += params.blockSize) {
