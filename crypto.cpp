@@ -2,14 +2,18 @@
 
 #include <random>
 #include <limits>
+#include <stdexcept>
+#include <string>
 
-#include <boost/multiprecision/cpp_int.hpp>
+#include <QDebug>
 
 using boost::multiprecision::cpp_int;
 
+Crypto::Key Crypto::curentKey = {0,0,0};
+
 namespace {
 
-std::mt19937_64 gen(std::random_device()());
+std::mt19937_64 gen{std::random_device()()};
 
 struct KeyInfo {
     cpp_int n;
@@ -25,7 +29,7 @@ cpp_int generateRandomBits(uint32_t bits) {
     cpp_int result{0};
     uint32_t chuncks = (bits + 63) / 64; // добавляем еще один чанк, чтобы в последствии гаранитровать размер числа
     for(uint32_t i{0}; i < chuncks; i++) {
-        uint64_t chunk = eng();
+        uint64_t chunk = gen();
         result |= (cpp_int(chunk) << i * 64); // заполняем число рандомными частями
     }
 
@@ -37,18 +41,18 @@ cpp_int generateRandomBits(uint32_t bits) {
 }
 
 
-cpp_int multBigIntMod(const cpp_int& base, const cpp_int& exponent, const cpp_int& mod) {
+cpp_int multBigIntMod(const cpp_int& a, const cpp_int& b, const cpp_int& mod) {
     return (a * b) % mod;
 }
-cpp_int powBigIntMod(const cpp_int& base, const cpp_int& exponent, const cpp_int& mod) {
+cpp_int powBigIntMod(cpp_int base, cpp_int exponent, const cpp_int& mod) {
     base %= mod;
     cpp_int res{1};
-    while (exp > 0) {
-        if ((exp & 1) != 0) {
+    while (exponent > 0) {
+        if ((exponent & 1) != 0) {
             res = multBigIntMod(res, base, mod);
         }
         base = multBigIntMod(base, base, mod);
-        exp >>= 1;
+        exponent >>= 1;
     }
     return res;
 }
@@ -80,23 +84,23 @@ cpp_int inverseBigIntMod(const cpp_int& a, const cpp_int& m) {
 bool isPrime(const cpp_int& number) {
     if(number < 2) return false;
 
-    cpp_int d{n - 1};
+    cpp_int d{number - 1};
     uint32_t s{0};
     for (; (d & 1) == 0; s++) {
         d >>= 1;
     }
 
-    std::uniform_int_distribution<uint64_t> dist64(2, std::numeric_limits<uint53_t>.max() - 1);
+    std::uniform_int_distribution<uint64_t> dist64(2, std::numeric_limits<uint32_t>::max() - 1);
     for (size_t i {0}; i < 8; i++) {
-        cpp_int a {dist64(rng_engine)};
+        cpp_int a {dist64(gen)};
         a %= number - 4;
         a += 2;
-        cpp_int x = powBigIntMod(a, d, n);
-        if (x == 1 || x == n - 1) continue;
+        cpp_int x = powBigIntMod(a, d, number);
+        if (x == 1 || x == number - 1) continue;
         bool composite{true};
         for (unsigned r = 1; r < s; ++r) {
-            x = multBigIntMod(x, x, n);
-            if (x == n-1) {
+            x = multBigIntMod(x, x, number);
+            if (x == number - 1) {
                 composite = false;
                 break;
             }
@@ -124,8 +128,8 @@ cpp_int generatePrimeNumber(uint32_t bits) {
     }
 }
 
-void generateKey(const cpp_int& e, const cpp_int& n, const cpp_int d) {
-    p = generatePrimeNumber(512);
+void generateKey(cpp_int& e, cpp_int& n, cpp_int d) {
+    cpp_int p = generatePrimeNumber(512), q;
     do {
         q = generatePrimeNumber(512);
     } while(q == p);
@@ -141,7 +145,7 @@ void generateKey(const cpp_int& e, const cpp_int& n, const cpp_int d) {
     }
     d = inverseBigIntMod(e, phi);
     if(d == 0) {
-        throw std::exception("Failed to generate key");
+        throw std::runtime_error("Failed to generate key");
     }
 }
 
@@ -153,12 +157,37 @@ cpp_int bytesToInt(const std::vector<uint8_t>& in) {
     }
     return x;
 }
+std::vector<uint8_t> intToBytes(const cpp_int& x_in) {
+    if (x_in == 0) return std::vector<uint8_t>{0};
+    cpp_int x = x_in;
+    std::vector<uint8_t> out;
+    while (x > 0) {
+        uint8_t b = (uint8_t)(x & 0xFF);
+        out.push_back(b);
+        x >>= 8;
+    }
+    std::reverse(out.begin(), out.end());
+    return out;
+}
 
 }
 
 
 
-QString Crypto::encrypt(const QString& message, const QString& key) {
+QString Crypto::generatePublicKey() {
+    cpp_int e, n, d;
+    generateKey(e, n, d);
+    curentKey = {e,n,d};
+
+
+    QString result {"e = "};
+    result += e.str();
+    result += "\nn = ";
+    result += n.str();
+
+    return result;
+}
+QString Crypto::encrypt(const QString& message) {
     QByteArray utf8Message = message.toUtf8();
     std::vector<uint8_t> bytes(utf8Message.begin(), utf8Message.end());
 
@@ -167,6 +196,6 @@ QString Crypto::encrypt(const QString& message, const QString& key) {
     return "Зашифровал";
 }
 
-QString Crypto::decrypt(const QString& message, const QString& key) {
+QString Crypto::decrypt(const QString& message) {
     return "Расшифровал";
 }
