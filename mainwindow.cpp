@@ -36,7 +36,5 @@ void MainWindow::on_pushButtonGenerateKey_clicked()
 {
     QString publicKey {Crypto::generatePublicKey()};
     ui->textEditKey->setPlainText(publicKey);
-
-    qDebug() << publicKey;
 }
 

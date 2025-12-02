@@ -116,10 +116,17 @@ cpp_int generatePrimeNumber(uint32_t bits) {
 
     while(true) {
         cpp_int number = generateRandomBits(bits);
+        bool div{false};
         for(auto p : smallPrimeNumbers) { // проверка, что не делится на маленькие простые
-            if(number % p) {
+            if(number % p == 0) {
                 number += 2; // если делиться, то проверим следующее нечетное
+                div = true;
+            } else {
+                div = false;
             }
+        }
+        if(div) {
+            continue;
         }
 
         if(isPrime(number)) {
@@ -128,7 +135,7 @@ cpp_int generatePrimeNumber(uint32_t bits) {
     }
 }
 
-void generateKey(cpp_int& e, cpp_int& n, cpp_int d) {
+void generateKey(cpp_int& e, cpp_int& n, cpp_int& d) {
     cpp_int p = generatePrimeNumber(512), q;
     do {
         q = generatePrimeNumber(512);
@@ -170,6 +177,15 @@ std::vector<uint8_t> intToBytes(const cpp_int& x_in) {
     return out;
 }
 
+QString bytesToBase64(const std::vector<uint8_t>& v) {
+    QByteArray ba((const char*)v.data(), (int)v.size());
+    return QString::fromLatin1(ba.toBase64());
+}
+std::vector<uint8_t> base64ToBytes(const QString& b64) {
+    QByteArray ba = QByteArray::fromBase64(b64.toUtf8());
+    return std::vector<uint8_t>( (uint8_t*)ba.constData(), (uint8_t*)ba.constData() + ba.size() );
+}
+
 }
 
 
@@ -177,7 +193,9 @@ std::vector<uint8_t> intToBytes(const cpp_int& x_in) {
 QString Crypto::generatePublicKey() {
     cpp_int e, n, d;
     generateKey(e, n, d);
-    curentKey = {e,n,d};
+    curentKey.e = e;
+    curentKey.n = n;
+    curentKey.d = d;
 
 
     QString result {"e = "};
@@ -193,9 +211,20 @@ QString Crypto::encrypt(const QString& message) {
 
     cpp_int m = bytesToInt(bytes);
 
-    return "Зашифровал";
+    cpp_int S{powBigIntMod(m, curentKey.e, curentKey.n)};
+
+    std::vector<uint8_t> cbytes = intToBytes(S);
+    return bytesToBase64(cbytes);
 }
 
 QString Crypto::decrypt(const QString& message) {
-    return "Расшифровал";
+    std::vector<uint8_t> bytes = base64ToBytes(message);
+
+    cpp_int m = bytesToInt(bytes);
+
+    cpp_int S{powBigIntMod(m, curentKey.d, curentKey.n)};
+
+    std::vector<uint8_t> mbytes = intToBytes(S);
+    QByteArray out((char*)mbytes.data(), (int)mbytes.size());
+    return QString::fromUtf8(out);
 }
