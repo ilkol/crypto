@@ -6,6 +6,7 @@
 #include <string>
 
 #include <QDebug>
+#include <QMessageBox>
 
 using boost::multiprecision::cpp_int;
 
@@ -186,6 +187,13 @@ std::vector<uint8_t> base64ToBytes(const QString& b64) {
     return std::vector<uint8_t>( (uint8_t*)ba.constData(), (uint8_t*)ba.constData() + ba.size() );
 }
 
+void showWarning(const QString& message) {
+    QMessageBox msgBox;
+    msgBox.setText(message);
+    msgBox.exec();
+
+}
+
 }
 
 
@@ -206,10 +214,20 @@ QString Crypto::generatePublicKey() {
     return result;
 }
 QString Crypto::encrypt(const QString& message) {
+    if(curentKey.n == 0) {
+        showWarning("Ключ не задан!");
+        return "";
+    }
     QByteArray utf8Message = message.toUtf8();
     std::vector<uint8_t> bytes(utf8Message.begin(), utf8Message.end());
 
     cpp_int m = bytesToInt(bytes);
+
+    if(curentKey.n <= m) {
+        showWarning("Сообщение слишком длинное!");
+        return "";
+    }
+
 
     cpp_int S{powBigIntMod(m, curentKey.e, curentKey.n)};
 
@@ -218,6 +236,11 @@ QString Crypto::encrypt(const QString& message) {
 }
 
 QString Crypto::decrypt(const QString& message) {
+    if(curentKey.n == 0) {
+        showWarning("Ключ не задан!");
+        return "";
+    }
+
     std::vector<uint8_t> bytes = base64ToBytes(message);
 
     cpp_int m = bytesToInt(bytes);
