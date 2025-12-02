@@ -188,7 +188,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
 
             op.encrypt = [params, type, add, mid](QByteArray& message) {
 
-                for(size_t i{0}; i < message.size(); i += 2 * mid) {
+                for(size_t i{0}; i < message.size(); i += params.blockSize) {
                     uint64_t
                         L { readBlock(message, i, mid) },
                         R { readBlock(message, i + mid, mid) }
@@ -204,7 +204,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
                 }
             };
             op.decrypt = [params, type, sub, mid](QByteArray& message) {
-                for(size_t i{0}; i < message.size(); i += 2 * mid) {
+                for(size_t i{0}; i < message.size(); i += params.blockSize) {
                     uint64_t
                         L { readBlock(message, i, mid) },
                         R { readBlock(message, i + mid, mid) }
