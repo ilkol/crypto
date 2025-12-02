@@ -269,6 +269,48 @@ QByteArray deletePadding(const QByteArray& data, uint8_t blockSize){
         ;
 }
 
+std::vector<size_t> generateNoise(uint64_t key, size_t messageSize) {
+    std::mt19937_64 gen(key * key); // на всякий случай, чтобы не совпало с другими генераторами
+    std::vector<size_t> pos;
+    size_t maxCount = messageSize / 2 + 1;
+    size_t minCount = maxCount > 10 ? 10 : maxCount;
+    std::uniform_int_distribution<uchar> insertsCountDist(minCount, maxCount);
+    size_t count {insertsCountDist(gen)};
+    pos.reserve(count);
+
+    size_t currentSize = messageSize;
+    std::uniform_int_distribution<size_t> dist(0, currentSize);
+
+    for (size_t i = 0; i < count; i++) {
+        size_t p = dist(gen);
+        pos.push_back(p);
+        currentSize++;
+        dist = std::uniform_int_distribution<size_t>(0, currentSize);
+    }
+
+    return pos;
+}
+
+void insertNoise(QByteArray& message, uint64_t key) {
+    auto noisePos = generateNoise(key, message.size());
+
+    std::mt19937_64 gen(key * 2);
+    std::uniform_int_distribution<uchar> byteDist(0, 255);
+
+    for (auto pos : noisePos) {
+        uint8_t b = byteDist(gen);
+        message.insert(pos, b);
+    }
+}
+
+void removeNoise(QByteArray& message, uint64_t key) {
+    auto noisePos = generateNoise(key, message.size());
+
+    for (auto pos = noisePos.rbegin(); pos != noisePos.rend(); pos++) {
+        message.erase(message.begin() + *pos, message.begin() + *pos);
+    }
+}
+
 }
 
 std::pair<uint64_t, EncryptParams> generateParams(const QString& key) {
@@ -306,14 +348,19 @@ QString Crypto::encrypt(const QString& message, const QString& key) {
     auto secretKey {params.first};
     uint8_t blockSize{ params.second.blockSize };
 
-    QByteArray utf8Messag = addPadding(message.toUtf8(), blockSize);
+    QByteArray utf8Messag = message.toUtf8();
+    insertNoise(utf8Messag, secretKey);
+    utf8Messag = addPadding(message.toUtf8(), blockSize);
 
     CryptoOperationsVector operations = generateOperations(secretKey, params.second);
+
 
     try {
         for(auto op : operations) {
             op.encrypt(utf8Messag);
         }
+    } catch(std::exception& e) {
+        return e.what();
     } catch(...) {
         return "Программа завершилась с ошибкой.";
     }
@@ -341,6 +388,7 @@ QString Crypto::decrypt(const QString& message, const QString& key) {
         return "Программа завершилась с ошибкой.";
     }
 
-
-    return QString::fromUtf8(deletePadding(utf8Messag, blockSize));
+    utf8Messag = deletePadding(utf8Messag, blockSize);
+    removeNoise(utf8Messag, secretKey);
+    return QString::fromUtf8(utf8Messag);
 }
