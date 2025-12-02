@@ -14,7 +14,7 @@ struct CryptoOperation {
 };
 using CryptoOperationsVector = std::vector<CryptoOperation>;
 
-struct EncryptSettings {
+struct EncryptParams {
     uint8_t blockSize;
     uint8_t operationsCount;
     uint8_t bytShiftStep;
@@ -71,7 +71,7 @@ auto inverTable(std::vector<uint8_t> table) {
 }
 
 
-CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings) {
+CryptoOperationsVector generateOperations(uint64_t key, EncryptParams params) {
     CryptoOperationsVector result;
 
     std::mt19937_64 gen(key);
@@ -81,7 +81,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
         modAddDist(8, 63)
     ;
 
-    for(size_t i{0}; i < settings.operationsCount; i++) {
+    for(size_t i{0}; i < params.operationsCount; i++) {
         uint8_t operationType{operatioTypeDist(gen)};
         CryptoOperation op;
 
@@ -112,21 +112,21 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
             break;
         case 1: // перестановка
         {
-            auto table {generateTable(key + 1, settings.blockSize)};
+            auto table {generateTable(key + 1, params.blockSize)};
             auto invTable {inverTable(table)};
 
-            op.encrypt = [settings, table](QByteArray& message) {
+            op.encrypt = [params, table](QByteArray& message) {
                 QByteArray out(message.size(), 0);
                 for(size_t i{0}; i < message.size(); i ++) {
-                    uint8_t index = i % settings.blockSize;
+                    uint8_t index = i % params.blockSize;
                     writeBlock(out, i, message[i - index + table[index]], 1);
                 }
                 message = out;
             };
-            op.decrypt = [settings, invTable](QByteArray& message) {
+            op.decrypt = [params, invTable](QByteArray& message) {
                 QByteArray out(message.size(), 0);
                 for(size_t i{0}; i < message.size(); i ++) {
-                    uint8_t index = i % settings.blockSize;
+                    uint8_t index = i % params.blockSize;
                     writeBlock(out, i, message[i - index + invTable[index]], 1);
                 }
                 message = out;
@@ -137,37 +137,37 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
         case 2: // сдвиг
         {
             bool type {boolDist(gen)};
-            op.encrypt = [settings, type](QByteArray& message) {
-                size_t bits = settings.blockSize * 8; // количество бит в блоке
-                uint64_t mask = (settings.blockSize == 8) ? ~0ULL : ((1ULL << bits) - 1);
+            op.encrypt = [params, type](QByteArray& message) {
+                size_t bits = params.blockSize * 8; // количество бит в блоке
+                uint64_t mask = (params.blockSize == 8) ? ~0ULL : ((1ULL << bits) - 1);
 
-                for(size_t i = 0; i < message.size(); i += settings.blockSize) {
-                    uint64_t block = readBlock(message, i, settings.blockSize);
+                for(size_t i = 0; i < message.size(); i += params.blockSize) {
+                    uint64_t block = readBlock(message, i, params.blockSize);
 
                     if(type) {
-                        block = ((block << settings.bytShiftStep) | (block >> (bits - settings.bytShiftStep))) & mask;
+                        block = ((block << params.bytShiftStep) | (block >> (bits - params.bytShiftStep))) & mask;
                     } else {
-                        block = ((block >> settings.bytShiftStep) | (block << (bits - settings.bytShiftStep))) & mask;
+                        block = ((block >> params.bytShiftStep) | (block << (bits - params.bytShiftStep))) & mask;
                     }
 
-                    writeBlock(message, i, block, settings.blockSize);
+                    writeBlock(message, i, block, params.blockSize);
                 }
             };
-            op.decrypt = [settings, type](QByteArray& message) {
-                size_t bits = settings.blockSize * 8;
-                uint64_t mask = (settings.blockSize == 8) ? ~0ULL : ((1ULL << bits) - 1);
+            op.decrypt = [params, type](QByteArray& message) {
+                size_t bits = params.blockSize * 8;
+                uint64_t mask = (params.blockSize == 8) ? ~0ULL : ((1ULL << bits) - 1);
 
-                for(size_t i = 0; i < message.size(); i += settings.blockSize) {
-                    uint64_t block = readBlock(message, i, settings.blockSize);
+                for(size_t i = 0; i < message.size(); i += params.blockSize) {
+                    uint64_t block = readBlock(message, i, params.blockSize);
 
                     if(type) {
                         // направление сдвига противоположное шифрованию
-                        block = ((block >> settings.bytShiftStep) | (block << (bits - settings.bytShiftStep))) & mask;
+                        block = ((block >> params.bytShiftStep) | (block << (bits - params.bytShiftStep))) & mask;
                     } else {
-                        block = ((block << settings.bytShiftStep) | (block >> (bits - settings.bytShiftStep))) & mask;
+                        block = ((block << params.bytShiftStep) | (block >> (bits - params.bytShiftStep))) & mask;
                     }
 
-                    writeBlock(message, i, block, settings.blockSize);
+                    writeBlock(message, i, block, params.blockSize);
                 }
             };
         }
@@ -176,7 +176,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
         case 3: // mod 2^n
         {
             bool type {boolDist(gen) > 0};
-            size_t mid = settings.blockSize / 2;
+            size_t mid = params.blockSize / 2;
             uint8_t maxBits = static_cast<uint8_t>(mid * 8);
             uint8_t n {modAddDist(gen)};
             uint64_t mask = ((1ULL << n) - 1);
@@ -184,7 +184,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
             auto add = [mask](uint64_t a, uint64_t b) { return (a + b) & mask; };
             auto sub = [mask](uint64_t a, uint64_t b) { return (a - b) & mask; };
 
-            op.encrypt = [settings, type, add, mid](QByteArray& message) {
+            op.encrypt = [params, type, add, mid](QByteArray& message) {
 
                 for(size_t i{0}; i < message.size(); i += 2 * mid) {
                     uint64_t
@@ -201,7 +201,7 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
                     writeBlock(message, i + mid, R, mid);
                 }
             };
-            op.decrypt = [settings, type, sub, mid](QByteArray& message) {
+            op.decrypt = [params, type, sub, mid](QByteArray& message) {
                 for(size_t i{0}; i < message.size(); i += 2 * mid) {
                     uint64_t
                         L { readBlock(message, i, mid) },
@@ -226,10 +226,10 @@ CryptoOperationsVector generateOperations(uint64_t key, EncryptSettings settings
                               ? [](uint64_t& L, uint64_t& R) { L ^= R; }
                               : [](uint64_t& L, uint64_t& R) { R ^= L; }
             ;
-            size_t mid{ settings.blockSize / 2};
+            size_t mid{ params.blockSize / 2};
 
-            op.decrypt = op.encrypt = [settings, opFunc, mid](QByteArray& message) {
-                for(size_t i{0}; i < message.size(); i += settings.blockSize) {
+            op.decrypt = op.encrypt = [params, opFunc, mid](QByteArray& message) {
+                for(size_t i{0}; i < message.size(); i += params.blockSize) {
                     uint64_t
                         L { readBlock(message, i, mid) },
                         R { readBlock(message, i + mid, mid) }
@@ -271,12 +271,8 @@ QByteArray deletePadding(const QByteArray& data, uint8_t blockSize){
     ;
 }
 
-QString Crypto::encrypt(const QString& message, const QString& key) {
+std::pair<uint64_t, EncryptParams> generateParams(const QString& key) {
     QByteArray utf8Key = key.toUtf8();
-    if(utf8Key.size() < 8) {
-        return "Неверный ключ";
-    }
-
     uint64_t secretKey {qFromBigEndian<uint64_t>(reinterpret_cast<const uchar*>(utf8Key.mid(0, 8).data()))};
 
     std::mt19937_64 gen(secretKey);
@@ -285,20 +281,34 @@ QString Crypto::encrypt(const QString& message, const QString& key) {
         operatorsCountDist(1, 10),
         bytShiftStepDist(1, 15)
     ;
-
     uint8_t
         blockSize{ blockSizeDist(gen) * 2 }, // гарантированно кратно двум, чтобы потом можжно было бы делить на два блока
         operatorsCount{operatorsCountDist(gen)},
         bytShiftStep{bytShiftStepDist(gen)}
     ;
 
+    return {
+        secretKey,
+        {
+            blockSize,
+            operatorsCount,
+            bytShiftStep
+        }
+    };
+}
+
+
+QString Crypto::encrypt(const QString& message, const QString& key) {
+    if(key.size() < 8) {
+        return "Неверный ключ";
+    }
+    auto params = generateParams(key);
+    auto secretKey {params.first};
+    uint8_t blockSize{ params.second.blockSize };
+
     QByteArray utf8Messag = addPadding(message.toUtf8(), blockSize);
 
-    CryptoOperationsVector operations = generateOperations(secretKey, {
-        blockSize,
-        operatorsCount,
-        bytShiftStep
-    });
+    CryptoOperationsVector operations = generateOperations(secretKey, params.second);
 
     try {
         for(auto op : operations) {
@@ -312,32 +322,16 @@ QString Crypto::encrypt(const QString& message, const QString& key) {
 }
 
 QString Crypto::decrypt(const QString& message, const QString& key) {
-    QByteArray utf8Key = key.toUtf8();
-    if(utf8Key.size() < 8) {
+    if(key.size() < 8) {
         return "Неверный ключ";
     }
+    auto params = generateParams(key);
+    auto secretKey {params.first};
+    uint8_t blockSize{ params.second.blockSize };
 
-    uint64_t secretKey {qFromBigEndian<uint64_t>(reinterpret_cast<const uchar*>(utf8Key.mid(0, 8).data()))};
-
-    std::mt19937_64 gen(secretKey);
-    std::uniform_int_distribution<uint8_t>
-        blockSizeDist(1, 4),
-        operatorsCountDist(1, 10),
-        bytShiftStepDist(1, 15)
-        ;
-
-    uint8_t
-        blockSize{ blockSizeDist(gen) * 2 }, // гарантированно кратно двум, чтобы потом можжно было бы делить на два блока
-        operatorsCount{operatorsCountDist(gen)},
-        bytShiftStep{bytShiftStepDist(gen)}
-    ;
     QByteArray utf8Messag = QByteArray::fromHex(message.toUtf8());
 
-    CryptoOperationsVector operations = generateOperations(secretKey, {
-        blockSize,
-        operatorsCount,
-        bytShiftStep
-    });
+    CryptoOperationsVector operations = generateOperations(secretKey, params.second);
 
     try {
         for(auto op = operations.end() - 1; op != operations.begin(); op--) {
