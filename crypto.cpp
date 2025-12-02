@@ -336,11 +336,9 @@ QString Crypto::decrypt(const QString& message, const QString& key) {
     CryptoOperationsVector operations = generateOperations(secretKey, params.second);
 
     try {
-        for(auto op = operations.end() - 1; op != operations.begin(); op--) {
+        for(auto op = operations.rbegin(); op != operations.rend(); op++) {
             (*op).decrypt(utf8Messag);
         }
-        auto op = *operations.begin();
-        op.decrypt(utf8Messag);
     } catch(...) {
         return "Программа завершилась с ошибкой.";
     }
