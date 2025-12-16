@@ -25,6 +25,5 @@ private:
 
 private slots:
     void on_pushButtonEncrypt_clicked();
-    void on_pushButtonDecipher_clicked();
 };
 #endif // MAINWINDOW_H

@@ -48,7 +48,7 @@
      <item>
       <widget class="QLabel" name="labelKey">
        <property name="text">
-        <string>Ключ шифрования</string>
+        <string>Ключ хэширования</string>
        </property>
       </widget>
      </item>
@@ -87,13 +87,6 @@
         <widget class="QPushButton" name="pushButtonEncrypt">
          <property name="text">
           <string>Зашифровать</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButtonDecipher">
-         <property name="text">
-          <string>Расшифровать</string>
          </property>
         </widget>
        </item>

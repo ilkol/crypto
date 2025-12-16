@@ -22,11 +22,5 @@ void MainWindow::processClickButton(std::function<QString(const QString&, const 
 
 void MainWindow::on_pushButtonEncrypt_clicked()
 {
-    processClickButton(Crypto::encrypt);
-}
-
-
-void MainWindow::on_pushButtonDecipher_clicked()
-{
-    processClickButton(Crypto::decrypt);
+    processClickButton(Crypto::hashMessage);
 }

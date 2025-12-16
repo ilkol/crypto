@@ -7,8 +7,7 @@ class Crypto
 {
 public:
     Crypto() = delete;
-    static QString encrypt(const QString& message, const QString& key);
-    static QString decrypt(const QString& message, const QString& key);
+    static QString hashMessage(const QString& message, const QString& key);
 };
 
 #endif // CRYPTO_H

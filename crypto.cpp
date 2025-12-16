@@ -142,7 +142,7 @@ QString hash(const QByteArray& message, const QString& h) {
 
 }
 
-QString Crypto::encrypt(const QString& message, const QString& key){
+QString Crypto::hashMessage(const QString& message, const QString& key){
     try {
         QByteArray msgBytes = addPadding(message.toUtf8());
 
@@ -159,21 +159,4 @@ QString Crypto::encrypt(const QString& message, const QString& key){
         return e.what();
     }
     return "Программа завершилась с ошибкой";
-}
-
-QString Crypto::decrypt(const QString& message, const QString& key){
-    std::array<uint32_t, 8> keys;
-    try {
-        keys = splitKeys(key);
-        QByteArray msgBytes = QByteArray::fromHex(message.toUtf8());
-        QByteArray out;
-        for(size_t i{0}; i < msgBytes.size(); i += 8){
-            out += decryptMessage(msgBytes.mid(i, 8), keys);
-        }
-        return QString::fromUtf8(deletePadding(out));
-    } catch(std::invalid_argument& e) {
-        return e.what();
-    }
-    return "Программа завершилась с ошибкой";
-
 }
