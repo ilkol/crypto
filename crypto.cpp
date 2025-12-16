@@ -7,6 +7,8 @@
 #include <functional>
 #include <bit>
 
+#include <QMessageBox>
+
 namespace {
 constexpr uint8_t table[8][16] = {
     {12, 7, 15, 5, 0, 14, 2, 4, 10, 13, 9, 3, 8, 1, 6, 11},
@@ -21,7 +23,7 @@ constexpr uint8_t table[8][16] = {
 
 inline std::array<uint32_t, 8> splitKeys(const QString& key) {
     QByteArray keysArray = key.toUtf8();
-    if(keysArray.size() < 32) {
+    if(keysArray.size() < 16) {
         throw std::invalid_argument("Неверный секретный ключ");
     }
 
@@ -150,7 +152,8 @@ QString Crypto::hashMessage(const QString& message, const QString& key){
         QString result = "";
         for(size_t i{0}; i < msgBytes.size(); i += 8) {
             QByteArray chunk = msgBytes.mid(i, 8);
-            result += h = hash(chunk, h);
+            h = hash(chunk, h);
+            result += h;
         }
 
         return result;
