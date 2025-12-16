@@ -109,18 +109,52 @@ QByteArray deletePadding(const QByteArray& data){
     ;
 }
 
+// E_(H_(i-1) ) (M_i )
+QByteArray functionE(const QByteArray& msgBytes, const QString& key) {
+    std::array<uint32_t, 8> keys = splitKeys(key);
+    return encryptMessage(msgBytes, keys);
+}
+
+QByteArray operator^(const QByteArray& left, const QByteArray& right) {
+    qsizetype size = std::min(left.size(), right.size());
+    QByteArray result(size, 0);
+
+    for (qsizetype i{0}; i < size; i++) {
+        result[i] = left[i] ^ right[i];
+    }
+    return result;
+}
+
+// H_i=E_(H_(i-1) ) (M_i )  ⨁M_i  ⨁H_(i-1)
+QString hash(const QByteArray& message, const QString& h) {
+    if (message.size() != 8) {
+        throw std::invalid_argument("Сообщение должно быть ровно 8 байт");
+    }
+
+    QByteArray result = functionE(message, h);
+    QByteArray hBytes = h.toUtf8();
+
+    result = result ^ message ^ hBytes;
+
+    return result.toHex();
+}
+
+
 }
 
 QString Crypto::encrypt(const QString& message, const QString& key){
-    std::array<uint32_t, 8> keys;
     try {
-        keys = splitKeys(key);
         QByteArray msgBytes = addPadding(message.toUtf8());
-        QByteArray out;
-        for(size_t i{0}; i < msgBytes.size(); i += 8){
-            out += encryptMessage(msgBytes.mid(i, 8), keys);
+
+        QString h = key;
+        QString result = "";
+        for(size_t i{0}; i < msgBytes.size(); i += 8) {
+            QByteArray chunk = msgBytes.mid(i, 8);
+            result += h = hash(chunk, h);
         }
-        return out.toHex();
+
+        return result;
+
     } catch(std::invalid_argument& e) {
         return e.what();
     }
